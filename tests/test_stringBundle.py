@@ -1,8 +1,8 @@
 import os
-import sys
 import unittest
-import resources
-from stringBundle import StringBundle
+
+from libs.stringBundle import StringBundle
+
 
 class TestStringBundle(unittest.TestCase):
 

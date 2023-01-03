@@ -1,7 +1,7 @@
-import os
-import sys
 import unittest
-from libs.utils import Struct, new_action, new_icon, add_actions, format_shortcut, generate_color_by_text, natural_sort
+
+from libs.utils import generate_color_by_text, natural_sort
+
 
 class TestUtils(unittest.TestCase):
 
@@ -17,6 +17,7 @@ class TestUtils(unittest.TestCase):
         natural_sort(l1)
         for idx, val in enumerate(l1):
             self.assertTrue(val == expected_l1[idx])
+
 
 if __name__ == '__main__':
     unittest.main()
