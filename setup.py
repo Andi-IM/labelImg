@@ -40,6 +40,7 @@ OPTIONS = {
     'iconfile': 'resources/icons/app.icns'
 }
 
+
 class UploadCommand(Command):
     """Support setup.py upload."""
 
