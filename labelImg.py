@@ -28,7 +28,9 @@ from libs.toolBar import ToolBar
 from libs.utils import *
 from libs.yolo_io import TXT_EXT
 from libs.yolo_io import YoloReader
+from libs.yolo_annot import YoloAnnotater
 from libs.zoomWidget import ZoomWidget
+from libs.resources import *
 
 __appname__ = 'labelImg'
 
@@ -66,7 +68,8 @@ class MainWindow(QMainWindow, WindowMixin):
         self.os_name = platform.system()
 
         # Load string bundle for i18n
-        self.string_bundle = StringBundle.get_bundle('id-ID')
+        self.string_bundle = StringBundle.get_bundle()
+
         # get_str = lambda str_id: self.string_bundle.get_string(str_id)
 
         def get_str(str_id):
@@ -144,7 +147,7 @@ class MainWindow(QMainWindow, WindowMixin):
         self.label_list.itemSelectionChanged.connect(self.label_selection_changed)
         self.label_list.itemDoubleClicked.connect(self.edit_label)
 
-        # Connect to itemChanged to detect checkbox changes.
+        # Connect to itemChanged to yolo_detect checkbox changes.
         self.label_list.itemChanged.connect(self.label_item_changed)
         list_layout.addWidget(self.label_list)
 
@@ -241,6 +244,9 @@ class MainWindow(QMainWindow, WindowMixin):
                              self.change_format, 'Ctrl+Y',
                              get_format_meta(self.label_file_format)[1],
                              get_str('changeSaveFormat'), enabled=True)
+
+        yolo_detect = action(get_str('annotate'), self.annot_yolo_dialog,
+                              'Ctrl+Shift+D', 'annotate', get_str('autoAnnot'), enabled=True)
 
         save_as = action(get_str('saveAs'), self.save_file_as,
                          'Ctrl+Shift+S', 'save-as', get_str('saveAsDetail'), enabled=False)
@@ -376,9 +382,9 @@ class MainWindow(QMainWindow, WindowMixin):
                               zoomActions=zoom_actions,
                               lightBrighten=light_brighten, lightDarken=light_darken, lightOrg=light_org,
                               lightActions=light_actions,
-                              fileMenuActions=(
-                                  open, open_dir, save, save_as, close, reset_all, quit),
+                              fileMenuActions=(open, open_dir, save, save_as, close, reset_all, quit),
                               beginner=(), advanced=(),
+                              yolo_detect=yolo_detect,
                               editMenu=(edit, copy, delete,
                                         None, color1, self.draw_squares_option),
                               beginnerContext=(create, edit, copy, delete),
@@ -437,8 +443,8 @@ class MainWindow(QMainWindow, WindowMixin):
 
         self.tools = self.toolbar('Tools')
         self.actions.beginner = (
-            open, open_dir, change_save_dir, open_next_image, open_prev_image, verify, save, save_format, None, create,
-            copy, delete, None,
+            open, open_dir, change_save_dir, open_next_image, open_prev_image, verify, save, save_format, yolo_detect,
+            None, create, copy, delete, None,
             zoom_in, zoom, zoom_out, fit_window, fit_width, None,
             light_brighten, light, light_darken, light_org)
 
@@ -540,18 +546,21 @@ class MainWindow(QMainWindow, WindowMixin):
     # Support Functions #
     def set_format(self, save_format):
         if save_format == FORMAT_PASCALVOC:
+            self.actions.yolo_detect.setEnabled(False)
             self.actions.save_format.setText(FORMAT_PASCALVOC)
             self.actions.save_format.setIcon(new_icon("format_voc"))
             self.label_file_format = LabelFileFormat.PASCAL_VOC
             LabelFile.suffix = XML_EXT
 
         elif save_format == FORMAT_YOLO:
+            self.actions.yolo_detect.setEnabled(True)
             self.actions.save_format.setText(FORMAT_YOLO)
             self.actions.save_format.setIcon(new_icon("format_yolo"))
             self.label_file_format = LabelFileFormat.YOLO
             LabelFile.suffix = TXT_EXT
 
         elif save_format == FORMAT_CREATEML:
+            self.actions.yolo_detect.setEnabled(False)
             self.actions.save_format.setText(FORMAT_CREATEML)
             self.actions.save_format.setIcon(new_icon("format_createml"))
             self.label_file_format = LabelFileFormat.CREATE_ML
@@ -1474,6 +1483,11 @@ class MainWindow(QMainWindow, WindowMixin):
         assert not self.image.isNull(), "cannot save empty image"
         self._save_file(self.save_file_dialog())
 
+    def annot_yolo_dialog(self):
+        dlg = QMainWindow(self)
+        annot = YoloAnnotater(self)
+        dlg.show()
+
     def save_file_dialog(self, remove_ext=True):
         caption = '%s - Choose File' % __appname__
         filters = 'File (*%s)' % LabelFile.suffix
@@ -1691,8 +1705,9 @@ def get_main_app(argv=None):
                            default=os.path.join(os.path.dirname(__file__), "data", "predefined_classes.txt"),
                            nargs="?")
     argparser.add_argument("save_dir", nargs="?")
-    args = argparser.parse_args(argv[1:])
+    qInitResources()
 
+    args = argparser.parse_args(argv[1:])
     args.image_dir = args.image_dir and os.path.normpath(args.image_dir)
     args.class_file = args.class_file and os.path.normpath(args.class_file)
     args.save_dir = args.save_dir and os.path.normpath(args.save_dir)
